@@ -244,19 +244,18 @@
 ;; the transpose of the matrix. 
 ;; given: (transpose '((2 3 4) (5 6 7)))
 ;; expect: '((2 5) (3 6) (4 7))
-;;note, as of 9/18, this procedure is not working
 (define (transpose matrix)
-  (define (row->column vec)
-    (cond ((null? vec) '())
-	  (else (cons (list (car vector))
-		    (row->column (cdr vector))))))
   (define (getfirst matrix) (map car matrix))
   (define (getcdr matrix) (map cdr matrix))
-  (cond ((null? matrix) '())
-	((equal? (length matrix) 1) (cons (list (car matrix))
-				       (transpose (cdr matrix))))
+  (define (null-matrix? matrix)
+    (cond ((null? matrix) #t)
+          (else (and (null? (car matrix))
+                     (null-matrix? (cdr matrix))))))
+  (cond ((null-matrix? matrix) '())
 	(else (cons (getfirst matrix)
                     (transpose (getcdr matrix))))))
+(check-expect (transpose (make-matrix '(2 3 4) '(5 6 7)))
+              (make-matrix '(2 5) '(3 6) '(4 7)))
 
 (define primitive-procedures
   (list (list 'norm get-norm)
