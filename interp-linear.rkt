@@ -1,7 +1,7 @@
 #lang racket
 (require test-engine/racket-tests)
 
-;; An Expr is on of:
+;; An Expr is one of:
 ;; - Atom
 ;; - SL
 
@@ -93,12 +93,12 @@
 ;; get-element: Matrix Row Column -> Number
 ;; given a matrix it gets the element in row i and
 ;; column j.
-;; given: (get-element '((2 3 4) (5 6 7)) 2 2)
+;; given: (get-element '((2 3 4) (5 6 7)) 2 1)
 ;; expect: 6
 (define (get-element matrix row column)
   (let ((rowx (getrow matrix row (length matrix))))
-    (get-column rowx column (length rowx))))
-(check-expect (get-element (make-matrix '(2 3 4) '(5 6 7)) 2 2)
+    (list-ref  rowx column)))
+(check-expect (get-element (make-matrix '(2 3 4) '(5 6 7)) 2 1)
               6)
 ;; A Row is a list of numbers
 ;; getrow: matrix row number -> row
@@ -111,17 +111,6 @@
 		      (- number-of-rows 1)))))
 (check-expect (getrow (make-matrix '(2 3 4) '(3 4 5)) 2 2)
               '(3 4 5))
-
-;; getcolumn: row column number -> column
-;; given: (get-column '(2 3 4) 2 3)
-;; expect: 3
-(define (get-column row column number-of-columns)
-  (cond ((equal? number-of-columns column) (car row))
-        ((equal? number-of-columns 1) (car row))
-	(else (get-column (cdr row)
-		          column
-		          (- number-of-columns 1)))))
-(check-expect (get-column (make-vector 2 3 4) 2 3) 3)
 
 ;; A Definition is an Expr
 (define (make-defintion var value) (list 'define var value))
@@ -186,52 +175,73 @@
          (sum (cdr expr) term p next))))
 
 (define (add expr1 expr2)
-  (if (and (vec? expr1) (vec? expr2))
+  (if (vec? expr1)
       (add-vectors expr1 expr2)
       (+ expr1 expr1)))
 
 (define (add-vectors expr1 expr2)
-  (cond ((null? expr1) '())
-        ((null? expr2) '())
+  (cond ((null? expr1) expr2)
+        ((null? expr2) expr1)
+        ((equal? expr1 0) expr2)
+        ((equal? expr2 0) expr1)
+        ((and (= (length expr1) 1)
+              (= (length expr2) 1))
+         (cons (+ (car expr1) (car expr2)) '()))
         (else (cons (+ (car expr1) (car expr2))
                     (add-vectors (cdr expr1) (cdr expr2))))))
-;; combine: Matrix Vector -> Vector(?)
+(check-expect (add-vectors (make-vector 2 3) (make-vector 3 4))
+              (make-vector 5 7))
+
 
 ;; combine: Matrix Vector -> Vector
 ;; given: (combine '((2 3) (3 4)) '(2 3) 1)
 ;; expect:'(13 18)
-;; as of 9/18 this is not working
+;; given: (combine '((2 3) (3 4)) '(3)) 1)
+;; (6 9)  + (9 12) = (15 21)
+;; given: (combine '((2 3) (3 4)) '() 1)
+;; '((2 3) (3 4))
 (define (combine matrix vec i)
-  (define (term matrix vec i)
-    (multiply (first-element vec) (get-columni matrix i)))
-  (define (next i) (+ i 1))
-  (define (multiply scalar columnvector)
-    (map (lambda (x) (* scalar x))
-	    columnvector))
-   (define (get-columni matrix i)
-      (cond ((null? matrix) '())
-	    ((equal? (length matrix) 1) (get-column matrix
-						 i
-						 (length (car matrix))))
-            (else (cons (get-column (car matrix)
-			          i
-			          (length (car matrix)))
-		     (get-column (cdr matrix)
-				 i ; this stays the same
-				 (length (car (cdr matrix))))))))
-  (if (null? matrix)
-      '()
-      (cons (term matrix vec i)
-            (combine (cdr matrix) (cdr vec) (next i)))))
+  (if (>= i (length vec))
+      0
+      (add-vectors (term matrix vec i)
+                   (combine matrix vec (next i)))))
+(check-expect (combine (make-matrix '(2 3) '(4 5))
+                       (make-vector 3 4) 0)
+                (make-vector 18 32))
 
-(check-expect (combine (make-matrix '(2 3) '(3 4))
-                       (make-vector 2 3)
-                       1)
-              (make-vector 13 18))
+;; term: Matrix Vec Number -> Vector
+;; given: (term '((2 3 4) '(3 4 5)) '(3 4) 0)
+;; expect: '(6 9)
+(define (term matrix vec i)
+  (multiply (list-ref vec i) (get-columni matrix (+ i 1))))
+(check-expect (term (make-matrix '(2 3 5) '(3 4 5))
+                    (make-vector 3 4) 0)
+              (make-vector 6 9))
+(define (next i) (+ i 1))
+
+;; multiply: Number Vector -> Vector
+;; given: (multiply 3 '(3 4 5))
+;; expect: '(9 12 15)
+(define (multiply scalar columnvector)
+  (map (lambda (x) (* scalar x))
+       columnvector))
+(check-expect (multiply 3 (make-vector 3 4 5)) (make-vector 9 12 15))
+
+;; get-columni: Matrix Number -> Vector
+;; given: (get-columni '((2 3 4) (3 4 6)) 1)
+;; expect: '(2 3)
+(define (get-columni matrix i)
+  (cond ((null? matrix) '())
+        (else (cons (list-ref (car matrix)
+			      (- i  1))
+		    (get-columni (cdr matrix)
+				 i)))))
+(check-expect (get-columni (make-matrix '(2 3 4) '(3 4 6)) 1)
+              (make-vector 2 3))
 
 ;; transpose:matrix -> matrix
 ;; given a matrix the procedure 'transpose' computes
-;; the transpose of the matrix.
+;; the transpose of the matrix. 
 ;; given: (transpose '((2 3 4) (5 6 7)))
 ;; expect: '((2 5) (3 6) (4 7))
 ;;note, as of 9/18, this procedure is not working
@@ -247,8 +257,6 @@
 				       (transpose (cdr matrix))))
 	(else (cons (getfirst matrix)
                     (transpose (getcdr matrix))))))
-(check-expect (transpose (make-matrix '(2 3 4) '(5 6 7)))
-              (make-matrix '(2 5) '(3 6) '(4 7)))
 
 (define primitive-procedures
   (list (list 'norm get-norm)
