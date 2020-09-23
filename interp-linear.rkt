@@ -23,14 +23,15 @@
 ;;
 
 ;; eval: Expr -> Expr
-(define (eval expr env)
+(define (evaluate expr env)
   (cond ((vec? expr) expr)
+        ((number? expr) expr)
 	((matrix? expr) expr)
 	((definition? expr) (eval-definition expr env))
 	((variable? expr) (lookup-variable-value expr env))
-	((application? expr) (applyl (eval (operator expr) env)
-				     (map eval
-					     (operands expr))))
+	((application? expr) (applyl (evaluate (operator expr) env)
+				     (list-of-values (operands expr) env)))
+                                
 	(else (error "Unknown Linear Algebra Expression"))))
 
 
@@ -56,7 +57,7 @@
 (check-expect (rest-elements (make-vector 2 3 4)) (make-vector 3 4))
 ;; vectorp: Expr -> Boolean
 (define (vec? expr)
-  (list-of-numbers? expr))
+  (and (pair? expr) (list-of-numbers? expr)))
 (check-expect (vec? (make-vector 2 3 4)) #t)
 
 ;; list-of-numbersp: Vector -> boolean
@@ -82,7 +83,7 @@
 
 ;; matrix? Expr -> bool
 (define (matrix? expr)
-  (list-of-vectors? expr))
+  (and (pair? expr) (list-of-vectors? expr)))
 
 (define (list-of-vectors? expr)
   (cond ((null? expr) #t)
@@ -116,7 +117,7 @@
 (define (make-defintion var value) (list 'define var value))
 (define (get-defintion-variable expr) (car (cdr expr)))
 (define (get-definition-value expr) (car (cdr (cdr expr))))
-(define (definition? expr) (equal?  (car expr) 'define))
+(define (definition? expr) (and (pair? expr)(equal?  (car expr) 'define)))
 
 ;; A Variable is an Atom:
 
@@ -128,6 +129,14 @@
 (define (operands expr) (cdr expr))
 (define (first-operand expr) (car expr))
 (define (rest-operands expr) (cdr expr))
+
+;; list-of-values is taken from SICP
+;; list-of-values: exps env ->  exps
+(define (list-of-values exps env)
+  (if (null? exps)
+      '()
+      (cons (evaluate (first-operand exps) env)
+            (list-of-values (rest-operands exps) env))))
 
 ;; eval-definition: Expr Env -> Expr
 ;; this procedeure puts an entry in the environment, namely a variable bound to a value.
@@ -141,21 +150,20 @@
   (hash-ref env var))
 ;; applyl: Procedure Arguments -> Expr
 (define (applyl proc args)
-  (apply-in-underlying-racket
-   (primitive-implementation proc) args))
+  (apply-in-underlying-racket proc args))
 
-(define apply-in-underlying-racket  apply)
+(define apply-in-underlying-racket apply)
 
 (define (primitive-implementation proc)
   (car (cdr proc)))
 
 
-(define (primitive-procedure-names)
-  (map car primitive-procedures))
+;(define (primitive-procedure-names)
+ ; (map car primitive-procedures))
 
-(define (primitive-procedure-objects)
-  (map (lambda (proc) (list 'primitive (cadr proc)))
-       primitive-procedures))
+;(define (primitive-procedure-objects)
+ ; (map (lambda (proc) (list 'primitive (cadr proc)))
+  ;     primitive-procedures))
 
 ;;; Primitive Procedures
 
@@ -244,6 +252,7 @@
 ;; the transpose of the matrix. 
 ;; given: (transpose '((2 3 4) (5 6 7)))
 ;; expect: '((2 5) (3 6) (4 7))
+;;note, as of 9/18, this procedure is not working
 (define (transpose matrix)
   (define (getfirst matrix) (map car matrix))
   (define (getcdr matrix) (map cdr matrix))
@@ -257,18 +266,87 @@
 (check-expect (transpose (make-matrix '(2 3 4) '(5 6 7)))
               (make-matrix '(2 5) '(3 6) '(4 7)))
 
-(define primitive-procedures
-  (list (list 'norm get-norm)
-	(list 'linear-combination combine)
-	(list 'transpose-matrices transpose)
-	;(list 'multiply-matrices multiply-matrices)
-	;(list 'multiply-vectors  multiply-vectors)
-	;(list 'transpose-matrix-product transpose-matrix-product)
-	;(list 'eigendecompose-matrix eigendecompose-matrix)
-	(list 'car car)
-	(list 'cdr cdr)
-	(list 'cons cons)
-	(list '* *)
-	(list '+ +)
-	(list '- -)))
+;; multiply-matrices: Matrice Matrice -> Matrice
+;; given:  (make-matrix '(1 2 3) '(4 5 6)) (make-matrix '(7 8) '(9 10) '(11 12)
+;; expect: (make-matrix '(58 64) '(139 154))
+;; note: this procedure does not work as of 9/23/2020
+(define (multiply-matrices matrix1 matrix2 i)
+  ; given: '((7 18 33) (8 20 33))
+  ; expect: '(58 61)
+  (define (make-row matrix)
+    (cond ((null? matrix) '())
+          (cons (add-col (car matrix))
+                (make-row (cdr matrix)))))
+  
+  (define (add-col vec)
+    (cond ((null? vec) 0)
+          (else (+ (car vec)
+                   (add-col (cdr vec))))))
+  ; vector vector ->
+  ; given: '((1 2 3) (4 5 6)) '((7 8) (9 10) (11 12))
+  ;; expect: '((7 18 33) (8 20 33))
+  (define (row-times-column matrix1 matrix2 i)
+    (cond ((null? matrix1) '())
+          (else (cons (multiply-vectors (car matrix1)
+                                         (get-columni matrix2 i))
+                      (row-times-column matrix1
+                                        (get-columni matrix2 (+ i 1))
+                                        i)))))
+  (define (multiply-vectors v1 v2)
+    (cond ((null? v1) v2)
+          ((null? v2) v1)
+          ((equal? v1 1) v2)
+          ((equal? v2 1) v1)
+          ((and (equal? (length v1) 1)
+                (equal? (length v2) 1))
+           (cons (* (car v1) (car v2)) '()))
+          (else (cons (* (car v1) (car v2))
+                      (multiply-vectors (cdr v1) (cdr v2))))))
+  
+  (cond ((null? matrix1) '())
+        (else (cons (make-row (row-times-column matrix1 matrix2 i))
+                    (multiply-matrices (cdr matrix1) matrix2 i)))))
+(check-expect (multiply-matrices (make-matrix '(1 2 3) '(4 5 6))
+                                 (make-matrix '(7 8) '(9 10) '(11 12))
+                                 1)
+              (make-matrix '(58 64) '(139 154)))
+
+(define env (make-hash))
+(hash-set! env 'get-norm get-norm)
+(hash-set! env 'combine combine)
+(hash-set! env 'transpose transpose)
+(hash-set! env 'make-matrix make-matrix)
+(hash-set! env 'make-vector make-vector)
+(hash-set! env 'list list)
+(hash-set! env 'car car)
+(hash-set! env 'cdr cdr)
+(hash-set! env 'cons cons)
+(hash-set! env '* *)
+(hash-set! env '+ +)
+(hash-set! env '- -)
+
+(define global-environment env)
+
+;; REPL
+;; the defintions "input-prompt" to "user-print" were taken from SICP
+(define input-prompt ";;; Eval input")
+(define output-prompt ";;; Eval value")
+
+(define (driver-loop)
+  (prompt-for-input input-prompt)
+  (let ((input (read)))
+    (let ((output (evaluate input global-environment)))
+      (announce-output output-prompt)
+      (user-print output)))
+  (driver-loop))
+
+(define (prompt-for-input str)
+  (newline) (newline) (display str) (newline))
+
+(define (announce-output str)
+  (newline) (display str) (newline))
+
+(define (user-print object)
+  (display object))
+  
 (test)
