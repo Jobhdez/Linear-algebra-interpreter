@@ -154,17 +154,6 @@
 
 (define apply-in-underlying-racket apply)
 
-(define (primitive-implementation proc)
-  (car (cdr proc)))
-
-
-;(define (primitive-procedure-names)
- ; (map car primitive-procedures))
-
-;(define (primitive-procedure-objects)
- ; (map (lambda (proc) (list 'primitive (cadr proc)))
-  ;     primitive-procedures))
-
 ;;; Primitive Procedures
 
 ;; getnorm: Expr -> Number
@@ -269,47 +258,63 @@
 ;; multiply-matrices: Matrice Matrice -> Matrice
 ;; given:  (make-matrix '(1 2 3) '(4 5 6)) (make-matrix '(7 8) '(9 10) '(11 12)
 ;; expect: (make-matrix '(58 64) '(139 154))
-;; note: this procedure does not work as of 9/23/2020
 (define (multiply-matrices matrix1 matrix2 i)
-  ; given: '((7 18 33) (8 20 33))
-  ; expect: '(58 61)
-  (define (make-row matrix)
-    (cond ((null? matrix) '())
-          (cons (add-col (car matrix))
-                (make-row (cdr matrix)))))
-  
-  (define (add-col vec)
-    (cond ((null? vec) 0)
-          (else (+ (car vec)
-                   (add-col (cdr vec))))))
-  ; vector vector ->
-  ; given: '((1 2 3) (4 5 6)) '((7 8) (9 10) (11 12))
-  ;; expect: '((7 18 33) (8 20 33))
-  (define (row-times-column matrix1 matrix2 i)
-    (cond ((null? matrix1) '())
-          (else (cons (multiply-vectors (car matrix1)
-                                         (get-columni matrix2 i))
-                      (row-times-column matrix1
-                                        (get-columni matrix2 (+ i 1))
-                                        i)))))
-  (define (multiply-vectors v1 v2)
-    (cond ((null? v1) v2)
-          ((null? v2) v1)
-          ((equal? v1 1) v2)
-          ((equal? v2 1) v1)
-          ((and (equal? (length v1) 1)
-                (equal? (length v2) 1))
-           (cons (* (car v1) (car v2)) '()))
-          (else (cons (* (car v1) (car v2))
-                      (multiply-vectors (cdr v1) (cdr v2))))))
-  
   (cond ((null? matrix1) '())
         (else (cons (make-row (row-times-column matrix1 matrix2 i))
                     (multiply-matrices (cdr matrix1) matrix2 i)))))
+
 (check-expect (multiply-matrices (make-matrix '(1 2 3) '(4 5 6))
                                  (make-matrix '(7 8) '(9 10) '(11 12))
                                  1)
               (make-matrix '(58 64) '(139 154)))
+
+; given: '((7 18 33) (8 20 33))
+; expect: '(58 61)
+(define (make-row matrix)
+  (cond ((null? matrix) '())
+        (else
+         (cons (add-col (car matrix))
+               (make-row (cdr matrix))))))
+(check-expect (make-row (make-matrix '(7 18 33) '(8 20 33)))
+              (make-vector 58 61))
+
+;; add-col: Vector -> Number
+;; given: '(2 3 5)
+;; expect: 10
+(define (add-col vec)
+  (cond ((null? vec) 0)
+        (else (+ (car vec)
+                 (add-col (cdr vec))))))
+(check-expect (add-col (make-vector 2 3 5)) 10)
+
+;; Matrix Matrix -> Matrix
+;; given: '((1 2 3) (4 5 6)) '((7 8) (9 10) (11 12))
+;; expect: '((7 18 33) (8 20 36))
+;; NOTE: "row-times-column" assumes the length of each vector(ie row) inside
+;; the matrix is of the same length.
+(define (row-times-column matrix1 matrix2 i)
+  (cond ((or (null? matrix1) (< (length (car matrix2)) i))
+         '())
+        (else (cons (multiply-vectors (car matrix1)
+                                      (get-columni matrix2 i))
+                    (row-times-column matrix1
+                                      matrix2
+                                      (+ i 1))))))
+(check-expect (row-times-column (make-matrix (make-vector 1 2 3) (make-vector 4 5 6))
+                                (make-matrix (make-vector 7 8) (make-vector 9 10) (make-vector 11 12))
+                                1)
+              (make-matrix (make-vector 7 18 33) (make-vector 8 20 36)))
+
+(define (multiply-vectors v1 v2)
+  (cond ((null? v1) v2)
+        ((null? v2) v1)
+        ((equal? v1 1) v2)
+        ((equal? v2 1) v1)
+        ((and (equal? (length v1) 1)
+              (equal? (length v2) 1))
+         (cons (* (car v1) (car v2)) '()))
+        (else (cons (* (car v1) (car v2))
+                    (multiply-vectors (cdr v1) (cdr v2))))))
 
 (define env (make-hash))
 (hash-set! env 'get-norm get-norm)
@@ -317,6 +322,7 @@
 (hash-set! env 'transpose transpose)
 (hash-set! env 'make-matrix make-matrix)
 (hash-set! env 'make-vector make-vector)
+(hash-set! env 'multiply-matrices multiply-matrices)
 (hash-set! env 'list list)
 (hash-set! env 'car car)
 (hash-set! env 'cdr cdr)
