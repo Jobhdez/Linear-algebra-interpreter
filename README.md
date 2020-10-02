@@ -2,7 +2,7 @@
 An interpreter for linear algebra expressions
 
 # What does this program do?
-This is a simple interpreter for applying, so far, the operations(ie. procedures) "combine", "transpose", "multiply-matrices", and "get-norm" to matrices and vectors where a vector is a List(eg. (list 2 3 4)) and where a Matrix is a list of vectors(eg. (list vector vector ...))
+This is a simple interpreter for applying, so far, the operators(ie. procedures) "combine", "transpose", "multiply-matrices", and "get-norm" to matrices and vectors where a vector is a List(eg. (list 2 3 4)) and where a Matrix is a list of vectors(eg. (list vector vector ...))
 
 ![](video.gif)
 
