@@ -19,5 +19,5 @@ Emacs and Racket
 MIT License
 
 # Acknowledgements 
-This program was influenced by the interpreter in "Structure and Interpretation of Computer Programs" by Sussman and by the disign recepi from the book "How to Design Programs" by Felleisen.
+This program was influenced by the interpreter in "Structure and Interpretation of Computer Programs" by Sussman and by the design recipe from the book "How to Design Programs" by Felleisen.
 
