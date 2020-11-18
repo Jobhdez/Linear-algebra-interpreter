@@ -241,7 +241,6 @@
 ;; the transpose of the matrix. 
 ;; given: (transpose '((2 3 4) (5 6 7)))
 ;; expect: '((2 5) (3 6) (4 7))
-;;note, as of 9/18, this procedure is not working
 (define (transpose matrix)
   (define (getfirst matrix) (map car matrix))
   (define (getcdr matrix) (map cdr matrix))
