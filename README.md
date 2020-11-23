@@ -9,6 +9,8 @@ This is a simple interpreter for applying, so far, the operators(ie. procedures)
 # How to install the software?
 Install Dr. Racket from [here](https://download.racket-lang.org/) and then download the code from GitHub. Once DrRacket is installed you can load the file by writing ```(load "name-of-file.rkt")``` and then writing ```(driver-loop)``` to start the REPL. At this point you can start writing expressions. 
 
+If you are using Emacs you need to install ```racket-mode``` via Emacs(ie MELPA) and install Racket with your package manager.
+
 # Author
 Job Hernandez Lara(ie. Me)
 
