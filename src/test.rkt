@@ -1,1 +1,0 @@
-(define (print-test) 'test)
