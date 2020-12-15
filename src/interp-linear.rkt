@@ -50,24 +50,22 @@
 ;; first-element: Vector -> Number
 (define (first-element vec)
   (car vec))
-(check-expect (first-element (make-vector 2 3 4 5 6)) 2)
+  
 ;; rest-elements: Vector -> Vector
 (define (rest-elements vec)
   (cdr vec))
-(check-expect (rest-elements (make-vector 2 3 4)) (make-vector 3 4))
+
 ;; vectorp: Expr -> Boolean
 (define (vec? expr)
   (and (pair? expr) (list-of-numbers? expr)))
-(check-expect (vec? (make-vector 2 3 4)) #t)
 
 ;; list-of-numbersp: Vector -> boolean
 (define (list-of-numbers? vec)
   (cond ((null? vec) #t)
 	((not (number? (first-element vec))) #f)
 	(else (and (number? (first-element vec))
-		(list-of-numbers? (cdr vec))))))
-(check-expect (list-of-numbers? (make-vector 2 3 4)) #t)
-(check-expect (list-of-numbers? (make-vector 2 'a 3)) #f)
+		   (list-of-numbers? (cdr vec))))))
+		
 ;; A Matrix is a:
 ;; - A List-of-rows
 
@@ -99,8 +97,7 @@
 (define (get-element matrix row column)
   (let ((rowx (getrow matrix row (length matrix))))
     (list-ref  rowx column)))
-(check-expect (get-element (make-matrix '(2 3 4) '(5 6 7)) 2 1)
-              6)
+
 ;; A Row is a list of numbers
 ;; getrow: matrix row number -> row
 ;; given: (getrow '((2 3 4) (3 4 5)) 2 2)
@@ -110,8 +107,6 @@
 	(else (getrow (cdr matrix)
 		      row
 		      (- number-of-rows 1)))))
-(check-expect (getrow (make-matrix '(2 3 4) '(3 4 5)) 2 2)
-              '(3 4 5))
 
 ;; A Definition is an Expr
 (define (make-defintion var value) (list 'define var value))
@@ -163,7 +158,6 @@
     (expt (abs (first-element vec)) p))
   (expt (sum vec term p cdr)
 	(expt 1 p)))
-(check-expect (get-norm (make-vector 1 2 3) 1) 6)
 
 (define (sum expr term p next)
   (if (null? expr)
@@ -186,9 +180,6 @@
          (cons (+ (car expr1) (car expr2)) '()))
         (else (cons (+ (car expr1) (car expr2))
                     (add-vectors (cdr expr1) (cdr expr2))))))
-(check-expect (add-vectors (make-vector 2 3) (make-vector 3 4))
-              (make-vector 5 7))
-
 
 ;; combine: Matrix Vector -> Vector
 ;; given: (combine '((2 3) (3 4)) '(2 3) 1)
@@ -202,18 +193,13 @@
       0
       (add-vectors (term matrix vec i)
                    (combine matrix vec (next i)))))
-(check-expect (combine (make-matrix '(2 3) '(4 5))
-                       (make-vector 3 4) 0)
-                (make-vector 18 32))
 
 ;; term: Matrix Vec Number -> Vector
 ;; given: (term '((2 3 4) '(3 4 5)) '(3 4) 0)
 ;; expect: '(6 9)
 (define (term matrix vec i)
   (multiply (list-ref vec i) (get-columni matrix (+ i 1))))
-(check-expect (term (make-matrix '(2 3 5) '(3 4 5))
-                    (make-vector 3 4) 0)
-              (make-vector 6 9))
+
 (define (next i) (+ i 1))
 
 ;; multiply: Number Vector -> Vector
@@ -222,7 +208,6 @@
 (define (multiply scalar columnvector)
   (map (lambda (x) (* scalar x))
        columnvector))
-(check-expect (multiply 3 (make-vector 3 4 5)) (make-vector 9 12 15))
 
 ;; get-columni: Matrix Number -> Vector
 ;; given: (get-columni '((2 3 4) (3 4 6)) 1)
@@ -233,8 +218,6 @@
 			      (- i  1))
 		    (get-columni (cdr matrix)
 				 i)))))
-(check-expect (get-columni (make-matrix '(2 3 4) '(3 4 6)) 1)
-              (make-vector 2 3))
 
 ;; transpose:matrix -> matrix
 ;; given a matrix the procedure 'transpose' computes
@@ -251,8 +234,6 @@
   (cond ((null-matrix? matrix) '())
 	(else (cons (getfirst matrix)
                     (transpose (getcdr matrix))))))
-(check-expect (transpose (make-matrix '(2 3 4) '(5 6 7)))
-              (make-matrix '(2 5) '(3 6) '(4 7)))
 
 ;; multiply-matrices: Matrice Matrice -> Matrice
 ;; given:  (make-matrix '(1 2 3) '(4 5 6)) (make-matrix '(7 8) '(9 10) '(11 12)
@@ -262,11 +243,6 @@
         (else (cons (make-row (row-times-column matrix1 matrix2 i))
                     (multiply-matrices (cdr matrix1) matrix2 i)))))
 
-(check-expect (multiply-matrices (make-matrix '(1 2 3) '(4 5 6))
-                                 (make-matrix '(7 8) '(9 10) '(11 12))
-                                 1)
-              (make-matrix '(58 64) '(139 154)))
-
 ; given: '((7 18 33) (8 20 33))
 ; expect: '(58 61)
 (define (make-row matrix)
@@ -274,8 +250,6 @@
         (else
          (cons (add-col (car matrix))
                (make-row (cdr matrix))))))
-(check-expect (make-row (make-matrix '(7 18 33) '(8 20 33)))
-              (make-vector 58 61))
 
 ;; add-col: Vector -> Number
 ;; given: '(2 3 5)
@@ -284,7 +258,6 @@
   (cond ((null? vec) 0)
         (else (+ (car vec)
                  (add-col (cdr vec))))))
-(check-expect (add-col (make-vector 2 3 5)) 10)
 
 ;; Matrix Matrix -> Matrix
 ;; given: '((1 2 3) (4 5 6)) '((7 8) (9 10) (11 12))
@@ -299,10 +272,6 @@
                     (row-times-column matrix1
                                       matrix2
                                       (+ i 1))))))
-(check-expect (row-times-column (make-matrix (make-vector 1 2 3) (make-vector 4 5 6))
-                                (make-matrix (make-vector 7 8) (make-vector 9 10) (make-vector 11 12))
-                                1)
-              (make-matrix (make-vector 7 18 33) (make-vector 8 20 36)))
 
 (define (multiply-vectors v1 v2)
   (cond ((null? v1) v2)
@@ -353,5 +322,3 @@
 
 (define (user-print object)
   (display object))
-  
-(test)
