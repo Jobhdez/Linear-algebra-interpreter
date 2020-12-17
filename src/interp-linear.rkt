@@ -1,5 +1,4 @@
 #lang racket
-(require test-engine/racket-tests)
 
 ;; An Expr is one of:
 ;; - Atom
